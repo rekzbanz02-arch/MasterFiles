@@ -1,1417 +1,1103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IPTV Player</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Master File · RekzBanz</title>
 <style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --surface2: #1a1a26;
-    --border: rgba(255,255,255,0.07);
-    --accent: #e63c6e;
-    --accent2: #7c3aed;
-    --text: #f0f0f5;
-    --muted: #6b6b80;
-    --glow: rgba(230, 60, 110, 0.3);
-    --sidebar-w: 320px;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    display: flex;
-    height: 100vh;
-    overflow: hidden;
-  }
-
-  /* ── SIDEBAR ── */
-  .sidebar {
-    width: var(--sidebar-w);
-    background: var(--surface);
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border);
-    position: relative;
-    z-index: 10;
-    flex-shrink: 0;
-  }
-
-  .sidebar-header {
-    padding: 22px 20px 16px;
-    border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, #16161f 0%, var(--surface) 100%);
-  }
-
-  .logo {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 22px;
-    letter-spacing: -0.5px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-
-  .logo-icon {
-    width: 32px; height: 32px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
-    box-shadow: 0 0 18px var(--glow);
-  }
-
-  .logo span { color: var(--accent); }
-
-  .search-wrap { position: relative; }
-
-  .search-wrap svg {
-    position: absolute;
-    left: 12px; top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    pointer-events: none;
-    width: 15px; height: 15px;
-  }
-
-  #search {
-    width: 100%;
-    padding: 10px 12px 10px 36px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13.5px;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-
-  #search::placeholder { color: var(--muted); }
-  #search:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(230,60,110,0.12);
-  }
-
-  .channel-list {
-    flex: 1;
-    overflow-y: auto;
-    padding: 8px 0;
-  }
-
-  .channel-list::-webkit-scrollbar { width: 4px; }
-  .channel-list::-webkit-scrollbar-track { background: transparent; }
-  .channel-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-
-  .category { margin-bottom: 2px; }
-
-  .category-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 18px;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s;
-  }
-
-  .category-header:hover { background: rgba(255,255,255,0.04); }
-
-  .category-label {
-    font-family: 'Syne', sans-serif;
-    font-size: 10.5px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .cat-count {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 1px 7px;
-    font-size: 10px;
-    color: var(--muted);
-    font-weight: 400;
-    letter-spacing: 0;
-  }
-
-  .chevron {
-    width: 14px; height: 14px;
-    color: var(--muted);
-    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
-  }
-
-  .category.open .chevron { transform: rotate(180deg); }
-
-  .category-body {
-    overflow: hidden;
-    max-height: 0;
-    transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1);
-  }
-
-  .category.open .category-body { max-height: 2000px; }
-
-  /* Channel item */
-  .channel-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 9px 18px 9px 28px;
-    cursor: pointer;
-    transition: background 0.15s;
-    border-left: 2px solid transparent;
-    position: relative;
-  }
-
-  .channel-item:hover { background: rgba(255,255,255,0.04); }
-
-  .channel-item.active {
-    background: rgba(230,60,110,0.08);
-    border-left-color: var(--accent);
-  }
-
-  .channel-item.active .ch-name { color: var(--accent); }
-
-  .ch-logo {
-    width: 34px; height: 34px;
-    border-radius: 7px;
-    object-fit: contain;
-    background: var(--surface2);
-    flex-shrink: 0;
-    border: 1px solid var(--border);
-  }
-
-  .ch-info { flex: 1; min-width: 0; }
-
-  .ch-name {
-    font-size: 13.5px;
-    font-weight: 500;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: color 0.15s;
-  }
-
-  .ch-group {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 1px;
-  }
-
-  /* Stream format badge */
-  .ch-format {
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
-    padding: 2px 5px;
-    border-radius: 4px;
-    flex-shrink: 0;
-  }
-
-  .ch-format.dash {
-    background: rgba(124,58,237,0.2);
-    color: #a78bfa;
-    border: 1px solid rgba(124,58,237,0.3);
-  }
-
-  .ch-format.hls {
-    background: rgba(34,197,94,0.12);
-    color: #4ade80;
-    border: 1px solid rgba(34,197,94,0.2);
-  }
-
-  .live-dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: #22c55e;
-    flex-shrink: 0;
-    opacity: 0;
-    box-shadow: 0 0 6px #22c55e;
-    transition: opacity 0.3s;
-  }
-
-  .channel-item.active .live-dot { opacity: 1; animation: pulse 2s infinite; }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  /* ── PLAYER AREA ── */
-  .player-area {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background: var(--bg);
-    overflow: hidden;
-  }
-
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 24px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    flex-shrink: 0;
-  }
-
-  .now-playing {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .now-badge {
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: #fff;
-    font-family: 'Syne', sans-serif;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    padding: 3px 9px;
-    border-radius: 20px;
-    box-shadow: 0 0 12px var(--glow);
-    flex-shrink: 0;
-  }
-
-  #channelTitle {
-    font-family: 'Syne', sans-serif;
-    font-weight: 700;
-    font-size: 16px;
-    letter-spacing: -0.2px;
-    color: var(--text);
-  }
-
-  .topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .icon-btn {
-    width: 36px; height: 36px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    color: var(--muted);
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
-  }
-
-  .icon-btn:hover {
-    background: rgba(230,60,110,0.15);
-    color: var(--accent);
-    border-color: rgba(230,60,110,0.3);
-  }
-
-  .icon-btn svg { width: 16px; height: 16px; }
-
-  .video-wrap {
-    flex: 1;
-    position: relative;
-    background: #000;
-    overflow: hidden;
-  }
-
-  #video {
-    width: 100%;
-    height: 100%;
-    display: block;
-  }
-
-  /* Idle screen */
-  .idle-screen {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    background: radial-gradient(ellipse at center, #1a0a1a 0%, var(--bg) 70%);
-    pointer-events: none;
-    transition: opacity 0.4s;
-  }
-
-  .idle-screen.hidden { opacity: 0; }
-
-  .idle-icon {
-    width: 72px; height: 72px;
-    background: linear-gradient(135deg, rgba(230,60,110,0.15), rgba(124,58,237,0.15));
-    border: 1px solid rgba(230,60,110,0.2);
-    border-radius: 22px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28px;
-    animation: float 3s ease-in-out infinite;
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-8px); }
-  }
-
-  .idle-title {
-    font-family: 'Syne', sans-serif;
-    font-weight: 800;
-    font-size: 22px;
-    letter-spacing: -0.5px;
-    color: rgba(255,255,255,0.6);
-  }
-
-  .idle-sub {
-    font-size: 13px;
-    color: var(--muted);
-  }
-
-  /* Bottom info bar */
-  .info-bar {
-    padding: 10px 24px;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--muted);
-    flex-shrink: 0;
-  }
-
-  .info-left { display: flex; align-items: center; gap: 16px; }
-  .info-chunk { display: flex; align-items: center; gap: 6px; }
-
-  .status-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--muted);
-    transition: background 0.3s;
-  }
-
-  .status-dot.live { background: #22c55e; animation: pulse 2s infinite; }
-
-  #statusText { font-weight: 500; }
-
-  .info-pill {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 2px 8px;
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .info-pill span { color: var(--text); font-weight: 500; }
-
-  /* Error toast */
-  .toast {
-    position: fixed;
-    bottom: 24px; left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: #2d0a14;
-    border: 1px solid rgba(230,60,110,0.4);
-    color: #f87171;
-    padding: 12px 20px;
-    border-radius: 12px;
-    font-size: 13px;
-    font-weight: 500;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-    transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .toast.show { transform: translateX(-50%) translateY(0); }
-
-  /* Sidebar toggle (mobile) */
-  .sidebar-toggle {
-    display: none;
-    position: fixed;
-    bottom: 20px; right: 20px;
-    width: 48px; height: 48px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 50%;
-    z-index: 200;
-    align-items: center; justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 20px var(--glow);
-  }
-
-  .empty-state {
-    padding: 30px 20px;
-    text-align: center;
-    color: var(--muted);
-    font-size: 13px;
-  }
-
-  /* Group dot colors */
-  .dot-ph    { background: #f59e0b; }
-  .dot-abscbn { background: #e8192c; }
-  .dot-news  { background: #3b82f6; }
-  .dot-intl  { background: var(--accent2); }
-  .dot-radio { background: #10b981; }
-  .dot-sports { background: #e27dcc; }
-  .dot-reality { background: #5fee26; }
-  .dot-kids  { background: #5fee26; }
-  .dot-inactive { background: #888; }
-  .dot-movies { background: #f97316; }
-  .dot-musictv { background: #a78bfa; }
-  .dot-documentary { background: #e4f740; }
-
-  @media (max-width: 768px) {
-    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; transform: translateX(-100%); transition: transform 0.3s; z-index: 100; }
-    .sidebar.open { transform: translateX(0); }
-    .sidebar-toggle { display: flex; }
-    .player-area { width: 100%; }
-  }
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+
+:root {
+  --bg:#0a0c10; --surface:#111318; --surface2:#181c24; --surface3:#1e232e;
+  --border:#252b38; --border-bright:#2e3749;
+  --accent:#00e5ff; --accent2:#7c4dff; --accent3:#ff4081;
+  --text:#e8eaf0; --text-muted:#6b7592; --text-dim:#9aa0b8;
+  --success:#00e676; --warning:#ffea00; --danger:#ff1744;
+  --radius:10px; --radius-sm:6px;
+  --shadow:0 4px 24px rgba(0,0,0,0.5);
+  --glow:0 0 20px rgba(0,229,255,0.15);
+  --tr:0.25s cubic-bezier(0.4,0,0.2,1);
+  --font-d:'Syne',sans-serif; --font-m:'Space Mono',monospace;
+}
+[data-theme="light"] {
+  --bg:#f0f2f8; --surface:#fff; --surface2:#f5f7fc; --surface3:#eaecf5;
+  --border:#d8dce8; --border-bright:#c5cade;
+  --text:#1a1d2e; --text-muted:#8890b0; --text-dim:#5a6280;
+  --shadow:0 4px 24px rgba(0,0,0,0.1); --glow:0 0 20px rgba(0,229,255,0.1);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-m);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background var(--tr),color var(--tr)}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border-bright);border-radius:3px}
+
+.hidden{display:none!important}
+.w-full{width:100%}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;max-width:300px}
+.toast{font-family:var(--font-m);font-size:12px;padding:12px 18px;border-radius:var(--radius-sm);border-left:3px solid;background:var(--surface2);box-shadow:var(--shadow);opacity:0;transform:translateX(40px);word-break:break-word}
+.toast.success{border-color:var(--success);color:var(--success)}
+.toast.error{border-color:var(--danger);color:var(--danger)}
+.toast.info{border-color:var(--accent);color:var(--accent)}
+@keyframes toastIn{to{opacity:1;transform:translateX(0)}}
+@keyframes toastOut{to{opacity:0;transform:translateX(40px)}}
+
+/* ── LOADING OVERLAY ── */
+#loading-overlay{position:fixed;inset:0;z-index:8888;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;transition:opacity .4s}
+#loading-overlay.fade-out{opacity:0;pointer-events:none}
+.spinner{width:44px;height:44px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-label{font-size:11px;color:var(--text-muted);letter-spacing:3px;text-transform:uppercase}
+
+/* ── CONNECTION STATUS BADGE ── */
+#conn-status{position:fixed;bottom:20px;left:20px;z-index:7000;font-size:10px;letter-spacing:2px;text-transform:uppercase;padding:6px 14px;border-radius:20px;border:1px solid;display:none;font-family:var(--font-m)}
+#conn-status.ok{display:block;color:var(--success);border-color:rgba(0,230,118,.3);background:rgba(0,230,118,.08)}
+#conn-status.fail{display:block;color:var(--danger);border-color:rgba(255,23,68,.3);background:rgba(255,23,68,.08)}
+#conn-status.checking{display:block;color:var(--accent);border-color:rgba(0,229,255,.3);background:rgba(0,229,255,.08)}
+
+/* ── LOGIN SCREEN ── */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg);position:relative;overflow:hidden}
+#login-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 50%,rgba(0,229,255,.04) 0%,transparent 70%);pointer-events:none}
+.login-card{width:100%;max-width:420px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:48px 40px;box-shadow:var(--shadow),0 0 60px rgba(0,229,255,.05);position:relative;z-index:1;animation:slideUp .5s cubic-bezier(.4,0,.2,1)}
+@keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.login-logo{text-align:center;margin-bottom:36px}
+.title-main{font-family:var(--font-d);font-size:32px;font-weight:800;letter-spacing:-1px;color:var(--text);line-height:1}
+.title-sub{font-size:10px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-top:6px}
+.brand-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:3px;vertical-align:middle;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Connection test area in login */
+.conn-test-area{margin-bottom:20px;padding:12px 16px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:10px}
+.conn-test-msg{flex:1;line-height:1.5}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--text-muted);flex-shrink:0;transition:background .3s}
+.conn-dot.ok{background:var(--success);box-shadow:0 0 6px var(--success)}
+.conn-dot.fail{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+.conn-dot.checking{background:var(--accent);animation:pulse .8s infinite}
+
+/* ── FORMS ── */
+.form-group{margin-bottom:20px}
+.form-label{display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-family:var(--font-m);font-size:14px;padding:12px 16px;outline:none;transition:border-color var(--tr),box-shadow var(--tr)}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.1)}
+.form-input::placeholder{color:var(--text-muted)}
+select.form-input{cursor:pointer}
+
+.btn{font-family:var(--font-m);font-size:12px;letter-spacing:1px;font-weight:700;text-transform:uppercase;border:none;cursor:pointer;border-radius:var(--radius-sm);padding:12px 20px;transition:all var(--tr);display:inline-flex;align-items:center;gap:6px;justify-content:center}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#000;width:100%}
+.btn-primary:not(:disabled):hover{filter:brightness(1.15);box-shadow:var(--glow)}
+.btn-secondary{background:var(--surface3);color:var(--text-dim);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(255,23,68,.15);color:var(--danger);border:1px solid rgba(255,23,68,.3)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-success{background:rgba(0,230,118,.12);color:var(--success);border:1px solid rgba(0,230,118,.3)}
+.btn-success:hover{background:var(--success);color:#000}
+.btn-sm{padding:6px 12px;font-size:10px}
+.btn-icon{padding:8px;border-radius:var(--radius-sm);background:var(--surface3);border:1px solid var(--border);color:var(--text-dim);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all var(--tr);font-size:14px;line-height:1}
+.btn-icon:hover{border-color:var(--accent);color:var(--accent)}
+.btn-icon.danger:hover{border-color:var(--danger);color:var(--danger)}
+
+#login-error{color:var(--danger);font-size:11px;text-align:center;margin-top:12px;min-height:16px;line-height:1.6}
+.retry-btn{background:none;border:none;color:var(--accent);cursor:pointer;font-family:var(--font-m);font-size:11px;text-decoration:underline;padding:0;margin-top:4px;display:inline}
+
+/* ── MAIN APP ── */
+#app-screen{display:none;min-height:100vh;flex-direction:column}
+#app-screen.active{display:flex}
+
+/* ── HEADER ── */
+.app-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header-brand{display:flex;flex-direction:column}
+.brand-name{font-family:var(--font-d);font-size:20px;font-weight:800;letter-spacing:-.5px;color:var(--text);line-height:1}
+.brand-sub{font-size:9px;letter-spacing:3px;color:var(--accent);text-transform:uppercase}
+.header-center{text-align:center;display:flex;flex-direction:column;align-items:center}
+.header-time{font-size:15px;font-weight:700;color:var(--text);letter-spacing:1px;font-family:var(--font-m)}
+.header-date{font-size:10px;color:var(--text-muted);letter-spacing:1px}
+.header-actions{display:flex;align-items:center;gap:8px}
+
+/* ── BODY ── */
+.app-body{flex:1;padding:24px;max-width:1200px;width:100%;margin:0 auto}
+
+/* ── SEARCH ── */
+.search-wrapper{position:relative;margin-bottom:24px}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;font-size:14px}
+#global-search{width:100%;padding:12px 16px 12px 42px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-m);font-size:13px;outline:none;transition:border-color var(--tr),box-shadow var(--tr)}
+#global-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,229,255,.08)}
+#global-search::placeholder{color:var(--text-muted)}
+
+/* ── NEW ENTRY ── */
+.new-entry-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.section-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted)}
+.form-dropdown{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;max-height:0;transition:max-height .45s cubic-bezier(.4,0,.2,1),opacity .3s;opacity:0;margin-bottom:16px}
+.form-dropdown.open{max-height:800px;opacity:1}
+.form-dropdown-inner{padding:24px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:16px}
+.form-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border)}
+
+/* ── ACCORDION TABS ── */
+.tab-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;transition:border-color var(--tr)}
+.tab-section.active{border-color:var(--border-bright)}
+.tab-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;user-select:none;transition:background var(--tr)}
+.tab-header:hover{background:var(--surface2)}
+.tab-header-left{display:flex;align-items:center;gap:12px}
+.tab-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--surface3);flex-shrink:0}
+.tab-name{font-family:var(--font-d);font-size:15px;font-weight:700}
+.tab-count{font-size:10px;letter-spacing:1px;color:var(--text-muted);background:var(--surface3);padding:2px 8px;border-radius:20px}
+.tab-chevron{color:var(--text-muted);font-size:12px;transition:transform .3s;flex-shrink:0}
+.tab-section.active .tab-chevron{transform:rotate(180deg)}
+.tab-body{max-height:0;overflow:hidden;transition:max-height .45s cubic-bezier(.4,0,.2,1)}
+.tab-section.active .tab-body{max-height:4000px}
+.tab-body-inner{padding:0 20px 20px}
+
+/* ── TABLE ── */
+.data-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{text-align:left;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text-dim);vertical-align:middle;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover td{background:var(--surface2);color:var(--text)}
+.pw-cell{position:relative}
+.pw-mask{filter:blur(5px);cursor:pointer;user-select:none;transition:filter .2s;font-family:var(--font-m);letter-spacing:2px;display:inline-block}
+.pw-mask:hover,.pw-mask.revealed{filter:none}
+.td-actions{display:flex;gap:6px;align-items:center;white-space:nowrap}
+.no-data{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:11px;letter-spacing:2px;text-transform:uppercase}
+.error-data{text-align:center;padding:20px;color:var(--danger);font-size:12px;line-height:1.8}
+
+/* ── SKELETON LOADER ── */
+.skel-wrap{padding:8px 0}
+.skel-row{display:flex;gap:12px;padding:10px 12px}
+.skel-cell{height:12px;border-radius:4px;background:linear-gradient(90deg,var(--surface2) 25%,var(--surface3) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;flex-shrink:0}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;z-index:7777;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border-bright);border-radius:14px;width:100%;max-width:560px;box-shadow:var(--shadow);animation:modalIn .3s cubic-bezier(.4,0,.2,1);max-height:90vh;overflow-y:auto}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(-10px)}to{opacity:1;transform:none}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0}
+.modal-title{font-family:var(--font-d);font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;padding:4px 6px;transition:color var(--tr);line-height:1}
+.modal-close:hover{color:var(--danger)}
+.modal-body{padding:20px 24px}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;padding:0 24px 24px}
+
+/* ── SETTINGS PANEL ── */
+.settings-panel{position:fixed;top:0;right:0;bottom:0;width:320px;z-index:6666;background:var(--surface);border-left:1px solid var(--border);box-shadow:-8px 0 32px rgba(0,0,0,.4);transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column}
+.settings-panel.open{transform:translateX(0)}
+.settings-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border)}
+.settings-title{font-family:var(--font-d);font-size:16px;font-weight:700}
+.settings-body{flex:1;overflow-y:auto;padding:24px}
+.settings-section{margin-bottom:32px}
+.settings-section-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.settings-label{font-size:12px;color:var(--text-dim)}
+
+/* ── TOGGLE SWITCH ── */
+.toggle{width:44px;height:24px;position:relative;display:inline-block;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:var(--surface3);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:background var(--tr)}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;background:var(--text-muted);border-radius:50%;transition:transform var(--tr),background var(--tr)}
+.toggle input:checked+.toggle-slider{background:rgba(0,229,255,.2);border-color:var(--accent)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px);background:var(--accent)}
+
+/* ── CONFIRM DIALOG ── */
+.confirm-message{color:var(--text-dim);font-size:13px;line-height:1.7}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .app-header{padding:0 16px;height:56px}
+  .header-center{display:none}
+  .app-body{padding:16px}
+  .form-grid{grid-template-columns:1fr}
+  .login-card{padding:36px 24px}
+  .settings-panel{width:100%}
+  .data-table th,.data-table td{padding:8px 6px;font-size:11px}
+  .new-entry-bar{flex-direction:column;align-items:flex-start;gap:10px}
+  .modal{max-height:95vh}
+}
 </style>
 </head>
 <body>
 
-<!-- ─── SIDEBAR ─── -->
-<div class="sidebar" id="sidebar">
-  <div class="sidebar-header">
-<div class="logo">
-      <div class="logo-icon">📺</div>
-      <div>
-        LIVE<span>TV</span>
-        <div style="font-size:9px; font-weight:400; letter-spacing:3px; color:var(--muted); text-transform:uppercase; margin-top:2px;">by RekzBanz</div>
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-label">Connecting...</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- CONNECTION STATUS BADGE -->
+<div id="conn-status"></div>
+
+<!-- ── CONFIRM DELETE DIALOG ── -->
+<div class="modal-overlay" id="confirm-dialog">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <span class="modal-title">⚠ Confirm Delete</span>
+      <button class="modal-close" onclick="closeConfirm()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-message" id="confirm-message"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok-btn">🗑 Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EDIT MODAL ── -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="edit-modal-title">Edit Entry</span>
+      <button class="modal-close" onclick="closeEditModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" id="edit-form-grid"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-success" id="save-edit-btn" onclick="submitEdit()">✓ Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── LOGIN SCREEN ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="title-main"><span class="brand-dot"></span>Master File</div>
+      <div class="title-sub">by RekzBanz</div>
+    </div>
+
+    <div class="conn-test-area" id="login-conn-area">
+      <span class="conn-dot checking" id="login-conn-dot"></span>
+      <span class="conn-test-msg" id="login-conn-msg">Checking connection to Google Sheets...</span>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Admin Password</label>
+      <input type="password" id="login-pw-input" class="form-input" placeholder="Enter password..." autocomplete="current-password"/>
+    </div>
+    <button class="btn btn-primary" id="login-btn" onclick="attemptLogin()" disabled>▶ Sign In</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── MAIN APP SCREEN ── -->
+<div id="app-screen">
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="brand-name">Master File</span>
+      <span class="brand-sub">by RekzBanz</span>
+    </div>
+    <div class="header-center">
+      <div class="header-time" id="live-time">--:--:--</div>
+      <div class="header-date" id="live-date">---</div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" title="Refresh All Data" onclick="refreshAll()">⟳</button>
+      <button class="btn-icon" title="Settings" onclick="openSettings()">⚙</button>
+      <button class="btn btn-secondary btn-sm" onclick="logout()">Logout</button>
+    </div>
+  </header>
+
+  <main class="app-body">
+    <div class="search-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="global-search" placeholder="Search across all visible data..." oninput="filterAll(this.value)"/>
+    </div>
+
+    <div class="new-entry-bar">
+      <span class="section-label">Data Management</span>
+      <button class="btn btn-primary btn-sm" onclick="toggleNewEntry()">+ New Entry</button>
+    </div>
+
+    <!-- NEW ENTRY ANIMATED DROPDOWN -->
+    <div class="form-dropdown" id="new-entry-form">
+      <div class="form-dropdown-inner">
+        <div class="form-group" style="margin-bottom:14px">
+          <label class="form-label">Target Sheet Tab</label>
+          <select class="form-input" id="new-entry-sheet" onchange="buildNewEntryFields()">
+            <option value="MyPWs">MyPWs</option>
+            <option value="PNPpw">PNPpw</option>
+            <option value="UrPWs">UrPWs</option>
+            <option value="PersonalEvts">PersonalEvts</option>
+            <option value="StnEvnts">StnEvnts</option>
+          </select>
+        </div>
+        <div class="form-grid" id="new-entry-fields"></div>
+        <div class="form-footer">
+          <button class="btn btn-secondary" onclick="toggleNewEntry()">Cancel</button>
+          <button class="btn btn-success" id="add-entry-btn" onclick="submitNewEntry()">✓ Add Entry</button>
+        </div>
       </div>
     </div>
-    <div class="search-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-      </svg>
-      <input type="text" id="search" placeholder="Search channels…" autocomplete="off">
-    </div>
-  </div>
-  <div class="channel-list" id="channelList"></div>
+
+    <!-- TAB ACCORDION CONTAINER -->
+    <div id="tabs-container"></div>
+  </main>
 </div>
 
-<!-- ─── PLAYER ─── -->
-<div class="player-area">
-  <div class="topbar">
-    <div class="now-playing">
-      <span class="now-badge">● LIVE</span>
-      <span id="channelTitle">Select a Channel</span>
+<!-- ── SETTINGS SIDE PANEL ── -->
+<div class="settings-panel" id="settings-panel">
+  <div class="settings-header">
+    <span class="settings-title">⚙ Settings</span>
+    <button class="modal-close" onclick="closeSettings()">&times;</button>
+  </div>
+  <div class="settings-body">
+
+    <div class="settings-section">
+      <div class="settings-section-label">Connection</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;line-height:1.5" id="settings-conn-info">—</div>
+      <button class="btn btn-secondary w-full" onclick="testConnectionVerbose()">▶ Test Connection</button>
     </div>
-    <div class="topbar-right">
-      <div class="icon-btn" title="Fullscreen" onclick="toggleFS()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-        </svg>
+
+    <div class="settings-section">
+      <div class="settings-section-label">Appearance</div>
+      <div class="settings-row">
+        <span class="settings-label">Light Mode</span>
+        <label class="toggle">
+          <input type="checkbox" id="theme-toggle" onchange="toggleTheme(this.checked)"/>
+          <span class="toggle-slider"></span>
+        </label>
       </div>
     </div>
-  </div>
 
-  <div class="video-wrap" id="videoWrap">
-    <div class="idle-screen" id="idleScreen">
-      <div class="idle-icon">📡</div>
-      <div class="idle-title">Pick a Channel</div>
-      <div class="idle-sub">Select any channel from the sidebar to start streaming</div>
-    </div>
-    <video id="video" controls autoplay playsinline></video>
-  </div>
-
-  <div class="info-bar">
-    <div class="info-left">
-      <div class="info-chunk">
-        <div class="status-dot" id="statusDot"></div>
-        <span id="statusText">Idle</span>
+    <div class="settings-section">
+      <div class="settings-section-label">Change Password</div>
+      <div class="form-group">
+        <label class="form-label">New Password</label>
+        <input type="password" id="new-password-input" class="form-input" placeholder="Enter new password..."/>
       </div>
-      <div class="info-pill">Format <span id="formatDisplay">—</span></div>
-      <div class="info-pill">Buffer <span id="bufferDisplay">—</span></div>
+      <div class="form-group">
+        <label class="form-label">Confirm New Password</label>
+        <input type="password" id="confirm-password-input" class="form-input" placeholder="Confirm password..."/>
+      </div>
+      <button class="btn btn-primary w-full" onclick="changePassword()">Save Password</button>
     </div>
-    <span id="infoTime"></span>
+
+    <div class="settings-section">
+      <div class="settings-section-label">Data</div>
+      <button class="btn btn-secondary w-full" onclick="refreshAll(); closeSettings()">⟳ Refresh All Data</button>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-section-label">Session</div>
+      <button class="btn btn-danger w-full" onclick="logout()">Logout</button>
+    </div>
   </div>
 </div>
-
-<!-- Sidebar toggle (mobile) -->
-<div class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-  </svg>
-</div>
-
-<!-- Error toast -->
-<div class="toast" id="toast">
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg>
-  <span id="toastMsg">Stream error</span>
-</div>
-
-<!-- Libraries: HLS.js + Dash.js -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dashjs/4.7.4/dash.all.min.js"></script>
 
 <script>
-// ── Channel Definitions ───────────────────────────────────────────────────────
-const channels = [
+'use strict';
 
-/* ========================
-   📡 ABS-CBN (MPEG-DASH)
-======================== */
-{
-  name: "Kapamilya Channel",
-  logo: "https://context.ph/wp-content/uploads/2023/05/teleradyo.jpeg",
-  url: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01006-abs-cbn-kapcha-dash-abscbnono/index.mpd",
-  group: "ABS-CBN"
-},
-{
-  name: "TeleRadyo Serbisyo",
-  logo: "https://context.ph/wp-content/uploads/2023/05/teleradyo.jpeg",
-  url: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01006-abs-cbn-teleradyo-dash-abscbnono/index.mpd",
-  group: "ABS-CBN"
-},
-{
-  name: "ANC Global",
-  logo: "https://upload.wikimedia.org/wikipedia/en/thumb/8/84/ABS-CBN_News_Channel_logo.svg/512px-ABS-CBN_News_Channel_logo.svg.png",
-  url: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01006-abs-cbn-anc-global-dash-abscbnono/index.mpd",
-  group: "ABS-CBN"
-},
-{
-  name: "Cinema One",
-  logo: "https://upload.wikimedia.org/wikipedia/en/thumb/6/6d/Cinema_One_2013_logo.svg/512px-Cinema_One_2013_logo.svg.png",
-  url: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01006-abs-cbn-cinemaone-dash-abscbnono/index.mpd",
-  group: "ABS-CBN"
-},
-{
-  name: "CINEMO!",
-  logo: "https://i.playboard.app/p/AATXAJxb2uvNJbpw48vP0sqaKe1CI-lnfr5y2uHG1qf1/default.jpg",
-  url: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01006-abs-cbn-cinemo-dash-abscbnono/index.mpd",
-  group: "ABS-CBN"
-},
-{
-  name: "MYX Philippines",
-  logo: "https://i.imgur.com/pbHuUuV.png",
-  url: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01006-abs-cbn-myxnola-dash-abscbnono/index.mpd",
-  group: "ABS-CBN"
-},
+// ============================================================
+//  CONFIG — Update this URL if you redeploy the Apps Script
+// ============================================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbzi8xpjG_vglxM4_xq44hFpZj_TgybfUUaUTaSc3OiyZDR_L3wUnq0mT9f8DzhDV5_o/exec';
 
-/* =======================
-   🇵🇭 PHILIPPINE CHANNELS
-======================= */
-{
-  name: "Abante",
-  logo: "https://www.abante.com.ph/wp-content/uploads/2023/09/cropped-abante-logo-small.png",
-  url: "https://amg19223-amg19223c12-amgplt0352.playout.now3.amagi.tv/playlist/amg19223-amg19223c12-amgplt0352/playlist.m3u8",
-  group: "Philippine Channels"
-},
-{
-  name: "Bilyonaryo News Channel",
-  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/BilyonaryoNewsChannel_Logo_-_Black_%282024%29.png/1024px-BilyonaryoNewsChannel_Logo_-_Black_%282024%29.png",
-  url: "https://amg19223-amg19223c11-amgplt0352.playout.now3.amagi.tv/playlist/amg19223-amg19223c11-amgplt0352/playlist.m3u8",
-  group: "Philippine Channels"
-},
-{
-  name: "CCTN 47",
-  logo: "https://cdn-icons-png.flaticon.com/512/21/21601.png",
-  url: "http://122.55.252.134:8443/live/bba5b536faeacb9b56a3239f1ee8e3b3/1.m3u8",
-  group: "Philippine Channels"
-},
-{
-  name: "Mindanao Network TV",
-  logo: "https://cdn-icons-png.flaticon.com/512/1046/1046876.png",
-  url: "https://streams.comclark.com/overlay/mindanow/playlist.m3u8",
-  group: "Philippine Channels"
-},
-{
-  name: "Hope Channel Philippines",
-  logo: "",
-  url: "https://jstre.am/live/jsl:7A1swL7Fhlh.m3u8",
-  group: "Philippine Channels"
-},
-{
-  name: "SARI-SARI",
-  logo: "https://static.wikia.nocookie.net/logopedia/images/2/22/Sari-Sari_Channel_logo.png",
-  url: "https://tinyurl.com/5bcc4nrw",
-  group: "Philippine Channels"
-},
+// ============================================================
+//  SHEET DEFINITIONS
+//  headers: exact column order matching your Google Sheet rows
+// ============================================================
+const SHEET_CONFIG = {
+  MyPWs:        { icon:'🔐', type:'password', headers:['Nr','Types','Sites','Owners','Users','pw','Remarks'] },
+  PNPpw:        { icon:'🛡️', type:'password', headers:['Nr','Types','Sites','Owners','Users','pw','Remarks'] },
+  UrPWs:        { icon:'🔑', type:'password', headers:['Nr','Types','Sites','Owners','Users','pw','Remarks'] },
+  PersonalEvts: { icon:'📅', type:'event',    headers:['No.','Date','Time','Subject/details','Remarks'] },
+  StnEvnts:     { icon:'📌', type:'event',    headers:['No.','Date','Time','Subject/details','Remarks'] }
+};
+const TABS_ORDER = ['MyPWs','PNPpw','UrPWs','PersonalEvts','StnEvnts'];
 
-/* =======================
-   📰 NEWS
-======================= */
-{
-  name: "BBC World News",
-  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/80/BBC_World_News_2022.svg/2560px-BBC_World_News_2022.svg.png",
-  url: "https://vs-hls-push-ww-live.akamaized.net/x=4/i=urn:bbc:pips:service:bbc_news_channel_hd/t=3840/v=pv14/b=5070016/main.m3u8",
-  group: "News"
-},
-{
-  name: "FOX News Live",
-  logo: "https://static.foxnews.com/foxnews.com/content/uploads/2022/09/Fox-News-Live.png",
-  url: "https://fox-foxnewsnow-vizio.amagi.tv/playlist.m3u8",
-  group: "News"
-},
-{
-  name: "NHK World Japan",
-  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/NHK_World-Japan_TV.svg/1280px-NHK_World-Japan_TV.svg.png",
-  url: "https://nhkwlive-ojp.akamaized.net/hls/live/2003459/nhkwlive-ojp-en/index.m3u8",
-  group: "News"
-},
-{
-  name: "CNN",
-  logo: "",
-  url: "https://turnerlive.warnermediacdn.com/hls/live/586495/cnngo/cnn_slate/VIDEO_0_3564000.m3u8",
-  group: "News"
-},
-{
-  name: "Bloomberg Asia",
-  logo: "",
-  url: "https://www.bloomberg.com/media-manifest/streams/asia.m3u8",
-  group: "News"
-},
-{
-  name: "Leadstory Breaking News",
-  logo: "",
-  url: "https://amg02703-amg02703c17-samsung-ph-4546.playouts.now.amagi.tv/playlist.m3u8",
-  group: "News"
-},
-
-/* =======================
-   ⚽ SPORTS
-======================= */
-{
-  name: "Premier Sports",
-  logo: "https://cdn-icons-png.flaticon.com/512/2583/2583344.png",
-  url: "https://amg19223-amg19223c3-amgplt0351.playout.now3.amagi.tv/playlist/amg19223-amg19223c3-amgplt0351/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "Premier Sports 2",
-  logo: "",
-  url: "https://amg19223-amg19223c4-amgplt0351.playout.now3.amagi.tv/playlist/amg19223-amg19223c4-amgplt0351/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "Blast Sports",
-  logo: "",
-  url: "https://amg19223-amg19223c1-amgplt0351.playout.now3.amagi.tv/playlist/amg19223-amg19223c1-amgplt0351/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "Fight Plus",
-  logo: "",
-  url: "https://amg19223-amg19223c6-amgplt0351.playout.now3.amagi.tv/playlist/amg19223-amg19223c6-amgplt0351/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "Tennis +",
-  logo: "",
-  url: "https://amg01935-amg01935c1-amgplt0352.playout.now3.amagi.tv/playlist/amg01935-amg01935c1-amgplt0352/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "Trace Sports Stars",
-  logo: "",
-  url: "https://amg01131-amg01131c2-samsung-ph-7609.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "Red Bull TV",
-  logo: "",
-  url: "https://d3k3xxewhm1my2.cloudfront.net/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "UFC TV",
-  logo: "",
-  url: "https://amg19223-amg19223c6-amgplt0351.playout.now3.amagi.tv/playlist/amg19223-amg19223c6-amgplt0351/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "Tap Sports (Pinoy)",
-  logo: "",
-  url: "https://amg19223-amg19223c2-amgplt0351.playout.now3.amagi.tv/playlist/amg19223-amg19223c2-amgplt0351/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "Nudge Sports Channel",
-  logo: "",
-  url: "https://streams.comclark.com/live_input/nudge_sports/playlist.m3u8",
-  group: "Sports"
-},
-{
-  name: "FilAm TV Network",
-  logo: "",
-  url: "https://streams.comclark.com/pknsd/filamtv/playlist.m3u8",
-  group: "Sports"
-},
-
-/* =======================
-   🎬 MOVIES
-======================= */
-{
-  name: "K-MOVIES",
-  logo: "https://static.vecteezy.com/system/resources/previews/006/260/264/original/film-logo-initial-letter-k-movie-logo-design-template-element-eps10-vector.jpg",
-  url: "https://7732c5436342497882363a8cd14ceff4.mediatailor.us-east-1.amazonaws.com/v1/master/04fd913bb278d8775298c26fdca9d9841f37601f/Plex_NewMovies/playlist.m3u8",
-  group: "Movies"
-},
-{
-  name: "Free Movies",
-  logo: "",
-  url: "https://amg01553-amg01553c2-samsung-ph-7163.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Movies"
-},
-{
-  name: "Blast Movies",
-  logo: "",
-  url: "https://amg19223-amg19223c7-amgplt0351.playout.now3.amagi.tv/playlist/amg19223-amg19223c7-amgplt0351/playlist.m3u8",
-  group: "Movies"
-},
-{
-  name: "Action Hollywood Movies",
-  logo: "",
-  url: "https://amg01076-amg01076c4-samsung-ph-5316.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Movies"
-},
-{
-  name: "Blast X",
-  logo: "",
-  url: "https://amg19223-amg19223c9-amgplt0019.playout.now3.amagi.tv/playlist/amg19223-amg19223c9-amgplt0019/playlist.m3u8",
-  group: "Movies"
-},
-{
-  name: "ABN Bible Movies",
-  logo: "",
-  url: "https://mediaserver.abnvideos.com/streams/abnbiblemovies.m3u8",
-  group: "Movies"
-},
-
-
-/* =======================
-   📚 DOCUMENTARY
-======================= */
-{
-  name: "History Hit",
-  logo: "https://cdn-icons-png.flaticon.com/512/29/29302.png",
-  url: "https://amg00426-lds-amg00426c2-samsung-ph-4623.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Evolution Earth",
-  logo: "",
-  url: "https://amg26277-amg26277c6-samsung-ph-11091.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Real Wild",
-  logo: "",
-  url: "https://amg00426-lds-amg00426c1-samsung-ph-4626.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Real Crime",
-  logo: "",
-  url: "https://amg00426-lds-amg00426c16-samsung-ph-4620.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Outdoor Channel",
-  logo: "",
-  url: "https://cdn-apse1-prod.tsv2.amagi.tv/linear/amg00718-outdoorchannela-outdoortvnz-samsungnz/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Living Asia Channel",
-  logo: "",
-  url: "https://streams.comclark.com/pknsd/lac/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Pet Club",
-  logo: "",
-  url: "https://amg01076-amg01076c10-samsung-ph-7605.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "KCM",
-  logo: "",
-  url: "https://amg02159-amg02159c10-amgplt0352.playout.now3.amagi.tv/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Vegas Life",
-  logo: "",
-  url: "https://streams.comclark.com/pknsd/vegaslifetv/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Adventure Earth",
-  logo: "",
-  url: "https://a57e9c69976649b582a8d7604c00e69a.mediatailor.us-east-1.amazonaws.com/v1/master/44f73ba4d03e9607dcd9bebdcb8494d86964f1d8/RlaxxTV-eu_AdventureEarth/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Authentic History",
-  logo: "",
-  url: "https://9e754fa707344ccca6d84955c8fcaf36.mediatailor.us-east-1.amazonaws.com/v1/master/44f73ba4d03e9607dcd9bebdcb8494d86964f1d8/RlaxxTV-eu_AutenticHistory/playlist.m3u8",
-  group: "Documentary"
-},
-{
-  name: "Documentary+",
-  logo: "",
-  url: "https://ef79b15c8c7c46c7a9de9d33001dbd07.mediatailor.us-west-2.amazonaws.com/v1/master/ba62fe743df0fe93366eba3a257d792884136c7f/LINEAR-859-DOCUMENTARYPLUS-DOCUMENTARYPLUS/mt/documentaryplus/859/hls/master/playlist.m3u8",
-  group: "Documentary"
-},
-{
-    name: "NatureTime",
-    logo: "",
-    url: "https://amg00090-blueantllc-lovenature-au-samsungau-wggcn.amagi.tv/playlist/amg00090-blueantllc-lovenature-au-samsungau/playlist.m3u8",
-    group: "Documentary"
-},
-{
-    name: "National Geographic HD West",
-    logo: "",
-    url: "https://tvpass.org/live/NationalGeographicEast/hd",
-    group: "Documentary"
-},
-{
-    name: "WildEarth",
-    logo: "",
-    url: "https://cdn-ue1-prod.tsv2.amagi.tv/linear/amg01290-wildearth-oando/playlist.m3u8",
-    group: "Documentary"
-},
-{
-    name: "Terra Master Wild",
-    logo: "",
-    url: "https://amg01775-amg01775c1-amgplt0343.playout.now3.amagi.tv/playlist/amg01775-amg01775c1-amgplt0343/playlist.m3u8",
-    group: "Documentary"
-},
-{
-    name: "The Nest",
-    logo: "",
-    url: "https://fast-channels.sinclairstoryline.com/THENEST/index.m3u8",
-    group: "Documentary"
-},
-{
-    name: "On The Case",
-    logo: "",
-    url: "https://cfd-v4-service-channel-stitcher-use1-1.prd.pluto.tv/stitch/hls/channel/615af74dfe3d8e0007524511/master.m3u8?appName=web&appVersion=9.19.0&deviceDNT=0&deviceId=07998d5d-dd4a-4bcc-84be-58dcbcec76b7&deviceMake=firefox&deviceModel=web&deviceType=web&deviceVersion=147.0.0&serverSideAds=false&sid=c5291974-e574-48eb-abce-e3a40c8f09ac",
-    group: "Documentary"
-},
-{
-  name: "Animal Planet",
-  logo: "",
-  url: "https://thetvapp.to/tv/animal-planet-live-stream/",
-  group: "Documentary"
-},
-{
-    name: "Yahoo Finance",
-    logo: "",
-    url: "https://yahoo-samsung.amagi.tv/playlist.m3u8",
-    group: "Documentary"
-},
-{
-  name: "EWTN Asia-Pacific",
-  logo: "",
-  url: "https://cdn3.wowza.com/1/QmVNUVhTNTZSS3Uz/YWQ0aHpi/hls/live/playlist.m3u8",
-  group: "Documentary"
-},
-/* =======================
-   🎭 REALITY
-======================= */
-{
-  name: "Masterchef",
-  logo: "",
-  url: "https://amg00627-amg00627c49-samsung-ph-8176.playouts.now.amagi.tv/playlist/amg00627-banijayfast-masterchefuk-samsungph/playlist.m3u8",
-  group: "Reality"
-},
-{
-  name: "Hell's Kitchen",
-  logo: "",
-  url: "https://amg00654-itv-amg00654c1-samsung-th-9581.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Reality"
-},
-{
-  name: "Survivor",
-  logo: "",
-  url: "https://amg00627-amg00627c16-samsung-ph-5303.playouts.now.amagi.tv/playlist/amg00627-banijayfast-survivor-samsungph/playlist.m3u8",
-  group: "Reality"
-},
-{
-  name: "Fear Factor",
-  logo: "",
-  url: "https://amg00627-amg00627c2-samsung-ph-5298.playouts.now.amagi.tv/playlist/amg00627-banijayfast-fearfactor-samsungph/playlist.m3u8",
-  group: "Reality"
-},
-{
-  name: "Deal or No Deal",
-  logo: "",
-  url: "https://amg00627-amg00627c21-samsung-ph-5284.playouts.now.amagi.tv/playlist/amg00627-banijayfast-dealornodealrow-samsungph/playlist.m3u8",
-  group: "Reality"
-},
-{
-  name: "The Biggest Loser",
-  logo: "",
-  url: "https://amg00627-amg00627c4-samsung-ph-5275.playouts.now.amagi.tv/playlist/amg00627-banijayfast-thebiggestloser-samsungph/playlist.m3u8",
-  group: "Reality"
-},
-{
-  name: "Antiques Road Trip",
-  logo: "",
-  url: "https://amg02333-pbs-amg02333c12-samsung-us-8496.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Reality"
-},
-{
-  name: "Unsolved Mysteries",
-  logo: "",
-  url: "https://d1si3n1st4nkgb.cloudfront.net/10000/88258000/hls/master.m3u8?ads.xumo_channelId=88258000",
-  group: "Reality"
-},
-{
-  name: "River Monsters",
-  logo: "",
-  url: "https://amg00654-itv-amg00654c12-samsung-ph-4580.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Reality"
-},
-{
-  name: "Just for Laughs",
-  logo: "",
-  url: "https://distributionsjustepourrire-justforlaughsgags-1-be.samsung.wurl.tv/playlist.m3u8",
-  group: "Reality"
-},
-{
-  name: "Young Hollywood",
-  logo: "",
-  url: "https://younghollywood-tcl.amagi.tv/playlist.m3u8",
-  group: "Reality"
-},
-
-/* =======================
-   🎵 MUSIC TV
-======================= */
-{
-  name: "Now 70s",
-  logo: "",
-  url: "https://amg01076-amg01076c1-samsung-ph-6994.playouts.now.amagi.tv/playlist.m3u8",
-  group: "MusicTV"
-},
-{
-  name: "Now 80s",
-  logo: "",
-  url: "https://amg01076-amg01076c2-samsung-ph-6998.playouts.now.amagi.tv/playlist.m3u8",
-  group: "MusicTV"
-},
-{
-  name: "Now Rock",
-  logo: "",
-  url: "https://amg01076-amg01076c3-samsung-ph-7003.playouts.now.amagi.tv/playlist.m3u8",
-  group: "MusicTV"
-},
-{
-  name: "Kpop by CJENM",
-  logo: "",
-  url: "https://cc-s23bl4el34qh7.akamaized.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-s23bl4el34qh7/f4acc9ba_daae_4ed0_b836_32126cead919/hls/playlist.m3u8",
-  group: "MusicTV"
-},
-{
-  name: "Trace Urban Music",
-  logo: "",
-  url: "https://ads.its-newid.net/api/manifest.m3u8?tp=samsung_tvplus&channel_name=%40k-music",
-  group: "MusicTV"
-},
-{
-  name: "Pop",
-  logo: "",
-  url: "https://amg01753-amg01753c6-samsung-au-6678.playouts.now.amagi.tv/playlist.m3u8",
-  group: "MusicTV"
-},
-
-/* =======================
-   🧸 KIDS
-======================= */
-{
-  name: "Aniplus",
-  logo: "",
-  url: "https://amg18481-amg18481c1-amgplt0352.playout.now3.amagi.tv/playlist/amg18481-amg18481c1-amgplt0352/playlist.m3u8",
-  group: "Kids"
-},
-{
-  name: "Ani One",
-  logo: "",
-  url: "https://amg19223-amg19223c9-amgplt0019.playout.now3.amagi.tv/playlist/amg19223-amg19223c9-amgplt0019/playlist.m3u8",
-  group: "Kids"
-},
-{
-    name: "Persiana Junior",
-    logo: "",
-    url: "https://junhls.persiana.live/hls/stream.m3u8",
-    group: "Kids"
-},
-{
-  name: "Kidoodle TV",
-  logo: "",
-  url: "https://amg07653-apmc-amg07653c5-samsung-ph-8539.playouts.now.amagi.tv/playlist.m3u8",
-  group: "Kids"
-},
-{
-  name: "Teletubbies",
-  logo: "",
-  url: "https://d1si3n1st4nkgb.cloudfront.net/10000/88258003/hls/master.m3u8?ads.xumo_channelId=88258003",
-  group: "Kids"
-},
-{
-  name: "Strawberry Shortcake",
-  logo: "",
-  url: "https://d1si3n1st4nkgb.cloudfront.net/10000/88258006/hls/master.m3u8?ads.xumo_channelId=88258006",
-  group: "Kids"
-},
-{
-  name: "Sonic the Hedgehog",
-  logo: "",
-  url: "https://d1si3n1st4nkgb.cloudfront.net/10000/88258004/hls/master.m3u8?ads.xumo_channelId=88258004",
-  group: "Kids"
-},
-
-/* =======================
-   🌐 INTERNATIONAL
-======================= */
-{
-  name: "InTravel",
-  logo: "",
-  url: "https://amg00861-amg00861c22-samsung-ph-5411.playouts.now.amagi.tv/playlist.m3u8",
-  group: "International Channels"
-},
-{
-  name: "Glitch Plus",
-  logo: "",
-  url: "https://amg07653-apmc-amg07653c7-samsung-ph-8466.playouts.now.amagi.tv/playlist.m3u8",
-  group: "International Channels"
-},
-{
-  name: "InFast",
-  logo: "",
-  url: "https://amg00861-amg00861c8-samsung-ph-4629.playouts.now.amagi.tv/playlist.m3u8",
-  group: "International Channels"
-},
-{
-  name: "InWild",
-  logo: "",
-  url: "https://amg00861-amg00861c7-samsung-ph-4632.playouts.now.amagi.tv/playlist.m3u8",
-  group: "International Channels"
-},
-{
-  name: "InTrouble",
-  logo: "",
-  url: "https://amg00861-amg00861c6-samsung-ph-4635.playouts.now.amagi.tv/playlist.m3u8",
-  group: "International Channels"
-},
-{
-  name: "Unbeated",
-  logo: "",
-  url: "https://amg00721-amg00721c6-samsung-ph-7082.playouts.now.amagi.tv/playlist/amg00721-inverleigh-unbtn3row-samsungph/playlist.m3u8",
-  group: "International Channels"
-},
-{
-  name: "Teletubbies",
-  logo: "",
-  url: "https://d1si3n1st4nkgb.cloudfront.net/10000/88258003/hls/master.m3u8?ads.xumo_channelId=88258003",
-  group: "International Channels"
-},
-{
-  name: "Comic U",
-  logo: "",
-  url: "https://amg19223-amg19223c8-amgplt0351.playout.now3.amagi.tv/playlist/amg19223-amg19223c8-amgplt0351/playlist.m3u8",
-  group: "International Channels"
-},
-
-/* =======================
-   ⛔ INACTIVE
-======================= */
-{
-  name: "CINEMO!",
-  logo: "https://i.playboard.app/p/AATXAJxb2uvNJbpw48vP0sqaKe1CI-lnfr5y2uHG1qf1/default.jpg",
-  url: "https://cinemo-abscbn-ono.amagi.tv/playlist720_p.m3u8",
-  group: "Inactive"
-},
-{
-  name: "One News",
-  logo: "https://static.wikia.nocookie.net/logopedia/images/5/5a/One_News_PH_logo_2020.png",
-  url: "https://bit.ly/3V39Bce",
-  group: "Inactive"
-},
-{
-  name: "PTV 4",
-  logo: "https://i.imgur.com/T3jDOEq.png",
-  url: "https://ythls.armelin.one/channel/UCJCUbMaY593_4SN1QPG7NFQ.m3u8",
-  group: "Inactive"
-},
-{
-  name: "KBS World",
-  logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/KBS_World_%282009%29.svg/2560px-KBS_World_%282009%29.svg.png",
-  url: "https://kbsworld-ott.akamaized.net/hls/live/2002341/kbsworld/master.m3u8",
-  group: "Inactive"
-}
-
-];
-
-// ── Group config ──────────────────────────────────────────────────────────────
-const groupMeta = {
-  "ABS-CBN":             { icon: "📡", dot: "dot-abscbn" },
-  "Philippine Channels": { icon: "🇵🇭", dot: "dot-ph" },
-  "News":                { icon: "📰", dot: "dot-news" },
-  "Sports":              { icon: "⚽", dot: "dot-sports" },
-  "Reality":             { icon: "🎥", dot: "dot-reality" },
-  "Documentary":         { icon: "📚", dot: "dot-documentary" },
-  "Movies":              { icon: "🍿", dot: "dot-movies" },
-  "Kids":                { icon: "🧸", dot: "dot-kids" },
-  "MusicTV":             { icon: "🎵", dot: "dot-musictv" },
-  "International Channels": { icon: "🌐", dot: "dot-intl" },
-  "Inactive":            { icon: "⛔", dot: "dot-inactive" }
+// ============================================================
+//  APPLICATION STATE
+// ============================================================
+const appState = {
+  adminPassword: '',
+  sheetData: {},    // { [sheetName]: [[row], [row], ...] }  (index 0 = headers)
+  editTarget: null, // { name, rowIdx }
+  searchQuery: ''
 };
 
-const groupOrder = [
-  "ABS-CBN", "Philippine Channels", "News", "Sports",
-  "Reality", "Documentary", "Movies", "Kids", "MusicTV",
-  "International Channels", "Inactive"
-];
-
-const fallbackLogo = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><rect width='40' height='40' rx='7' fill='%231a1a26'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' font-size='18' fill='%236b6b80'>📺</text></svg>`;
-
-// ── State ─────────────────────────────────────────────────────────────────────
-let currentHls  = null;
-let currentDash = null;
-let currentEl   = null;
-let bufferInterval = null;
-
-const video        = document.getElementById("video");
-const channelList  = document.getElementById("channelList");
-const channelTitle = document.getElementById("channelTitle");
-const idleScreen   = document.getElementById("idleScreen");
-const statusDot    = document.getElementById("statusDot");
-const statusText   = document.getElementById("statusText");
-const formatDisplay = document.getElementById("formatDisplay");
-const bufferDisplay = document.getElementById("bufferDisplay");
-const toast        = document.getElementById("toast");
-const toastMsg     = document.getElementById("toastMsg");
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function isDASH(url) { return url.includes(".mpd"); }
-function isHLS(url)  { return url.includes(".m3u8"); }
-
-function setStatus(msg, live) {
-  statusText.textContent = msg;
-  statusDot.className = "status-dot" + (live ? " live" : "");
+// ============================================================
+//  UTILITY: Safe CSS/element ID from header string
+//  Headers like "Subject/details" and "No." contain chars that
+//  break getElementById and querySelector — strip them.
+// ============================================================
+function safeId(header) {
+  return header.replace(/[^a-zA-Z0-9]/g, '_');
 }
 
-function showToast(msg) {
-  toastMsg.textContent = msg;
-  toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 3500);
+// ============================================================
+//  HTML ESCAPE HELPERS
+// ============================================================
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function escAttr(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
 }
 
-function stopAll() {
-  if (bufferInterval) { clearInterval(bufferInterval); bufferInterval = null; }
-  if (currentHls)  { currentHls.destroy();  currentHls  = null; }
-  if (currentDash) { try { currentDash.destroy(); } catch(e) {} currentDash = null; }
-  video.src = "";
-  bufferDisplay.textContent = "—";
-}
-
-// ── Playback ──────────────────────────────────────────────────────────────────
-function play(channel, el) {
-  if (currentEl) currentEl.classList.remove("active");
-  currentEl = el;
-  el.classList.add("active");
-
-  channelTitle.textContent = channel.name;
-  idleScreen.classList.add("hidden");
-  setStatus("Connecting…", false);
-  stopAll();
-
-  const url = channel.url;
-
-  if (isDASH(url)) {
-    // ── MPEG-DASH via dash.js ──
-    formatDisplay.textContent = "MPEG-DASH";
-    const dash = dashjs.MediaPlayer().create();
-    currentDash = dash;
-    dash.initialize(video, url, true);
-    dash.updateSettings({
-      streaming: {
-        abr: { autoSwitchBitrate: { video: true, audio: true } },
-        buffer: { fastSwitchEnabled: true }
-      }
-    });
-    dash.on(dashjs.MediaPlayer.events.PLAYBACK_STARTED, () => setStatus("Live", true));
-    dash.on(dashjs.MediaPlayer.events.PLAYBACK_PLAYING, () => setStatus("Playing", true));
-    dash.on(dashjs.MediaPlayer.events.PLAYBACK_WAITING, () => setStatus("Buffering…", false));
-    dash.on(dashjs.MediaPlayer.events.ERROR, () => {
-      setStatus("Error", false);
-      showToast("Stream error — try another channel");
-    });
-    bufferInterval = setInterval(() => {
-      try {
-        const buf = dash.getDashMetrics().getCurrentBufferLevel("video");
-        if (buf != null) bufferDisplay.textContent = buf.toFixed(1) + "s";
-      } catch(e) {}
-    }, 2000);
-
-  } else if (isHLS(url) && typeof Hls !== "undefined" && Hls.isSupported()) {
-    // ── HLS via hls.js ──
-    formatDisplay.textContent = "HLS";
-    const hls = new Hls({ enableWorker: false });
-    currentHls = hls;
-    hls.loadSource(url);
-    hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      video.play().catch(() => {});
-      setStatus("Live", true);
-    });
-    hls.on(Hls.Events.ERROR, (e, data) => {
-      if (data.fatal) {
-        setStatus("Error", false);
-        showToast("Stream error — try another channel");
-      }
-    });
-    bufferInterval = setInterval(() => {
-      try {
-        const buf = video.buffered;
-        if (buf.length > 0) {
-          const ahead = buf.end(buf.length - 1) - video.currentTime;
-          bufferDisplay.textContent = ahead.toFixed(1) + "s";
-        }
-      } catch(e) {}
-    }, 2000);
-
-  } else if (video.canPlayType("application/x-mpegURL")) {
-    // ── Native HLS (Safari) ──
-    formatDisplay.textContent = "HLS (native)";
-    video.src = url;
-    video.play().catch(() => {});
-    video.oncanplay = () => setStatus("Live", true);
-    video.onerror  = () => showToast("Stream unavailable");
-
-  } else {
-    // ── Fallback ──
-    formatDisplay.textContent = "Direct";
-    video.src = url;
-    video.play().catch(() => {});
-    video.oncanplay = () => setStatus("Live", true);
-    video.onerror  = () => showToast("Stream unavailable");
-  }
-
-  if (window.innerWidth <= 768) {
-    document.getElementById("sidebar").classList.remove("open");
-  }
-}
-
-// ── Render sidebar ────────────────────────────────────────────────────────────
-function getGroups(filter) {
-  const lower = filter.toLowerCase();
-  const filtered = channels.filter(c => c.name && c.url && c.name.toLowerCase().includes(lower));
-  const map = {};
-  filtered.forEach(ch => {
-    if (!map[ch.group]) map[ch.group] = [];
-    map[ch.group].push(ch);
+// ============================================================
+//  API LAYER
+//  ALL requests go via GET to avoid CORS preflight.
+//  Google Apps Script cannot respond to OPTIONS requests,
+//  so POST from a browser always fails with CORS error.
+//  Solution: encode everything in GET URL parameters.
+// ============================================================
+async function apiGet(params) {
+  const qs = new URLSearchParams(params).toString();
+  const url = `${API_URL}?${qs}`;
+  const res = await fetch(url, {
+    method: 'GET',
+    redirect: 'follow'   // GAS redirects to the actual script URL — follow it
   });
-  return map;
+  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  const text = await res.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch(e) {
+    throw new Error('Invalid JSON from server. Verify your Apps Script is deployed correctly (Execute as: Me, Access: Anyone).');
+  }
+  if (!json.success) throw new Error(json.error || 'API returned failure without a message.');
+  return json;
 }
 
-function render(filter = "") {
-  channelList.innerHTML = "";
-  const groups = getGroups(filter);
-  const order  = filter ? Object.keys(groups) : groupOrder.filter(g => groups[g]);
+// Write operations also go through GET (same function, just aliased for clarity)
+async function apiWrite(params) {
+  return apiGet(params);
+}
 
-  if (order.length === 0) {
-    channelList.innerHTML = `<div class="empty-state">No channels found</div>`;
+// ============================================================
+//  TOAST NOTIFICATIONS
+// ============================================================
+function toast(msg, type = 'info', duration = 3000) {
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  const showMs = 300;
+  const hideMs = duration - 300;
+  el.style.animation = `toastIn ${showMs}ms forwards, toastOut 300ms ${hideMs}ms forwards`;
+  container.appendChild(el);
+  setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, duration + 50);
+}
+
+// ============================================================
+//  LOADING OVERLAY
+// ============================================================
+const loadingOverlay = document.getElementById('loading-overlay');
+function showLoading(label = 'Loading...') {
+  loadingOverlay.querySelector('.loading-label').textContent = label;
+  loadingOverlay.classList.remove('fade-out');
+  loadingOverlay.style.display = 'flex';
+}
+function hideLoading() {
+  loadingOverlay.classList.add('fade-out');
+  setTimeout(() => { loadingOverlay.style.display = 'none'; }, 450);
+}
+
+// ============================================================
+//  CONNECTION STATUS BADGE (bottom-left)
+// ============================================================
+function setConnBadge(status) {
+  // status: 'ok' | 'fail' | 'checking'
+  const el = document.getElementById('conn-status');
+  el.className = status;
+  el.textContent = status === 'ok' ? '● Connected'
+                 : status === 'fail' ? '● Disconnected'
+                 : '● Connecting...';
+}
+
+// ============================================================
+//  TEST CONNECTION
+// ============================================================
+async function testConnection() {
+  const dot = document.getElementById('login-conn-dot');
+  const msg = document.getElementById('login-conn-msg');
+  const info = document.getElementById('settings-conn-info');
+  const loginBtn = document.getElementById('login-btn');
+
+  if (dot) { dot.className = 'conn-dot checking'; }
+  if (msg) msg.textContent = 'Connecting to Google Sheets...';
+  if (info) info.textContent = 'Testing...';
+  setConnBadge('checking');
+
+  try {
+    const res = await apiGet({ action: 'ping' });
+    if (dot) dot.className = 'conn-dot ok';
+    if (msg) msg.textContent = 'Connected ✓  ' + (res.message || '');
+    if (info) info.textContent = `Connected · ${new Date().toLocaleTimeString()}`;
+    if (loginBtn) loginBtn.disabled = false;
+    setConnBadge('ok');
+    return true;
+  } catch(e) {
+    if (dot) dot.className = 'conn-dot fail';
+    if (msg) {
+      msg.innerHTML = `Connection failed: ${escHtml(e.message)}<br>
+        <button class="retry-btn" onclick="initApp()">↻ Retry</button>`;
+    }
+    if (info) info.textContent = `Failed: ${e.message}`;
+    if (loginBtn) loginBtn.disabled = false; // still allow manual attempt
+    setConnBadge('fail');
+    return false;
+  }
+}
+
+async function testConnectionVerbose() {
+  const ok = await testConnection();
+  if (ok) toast('Connection successful!', 'success');
+  else toast('Connection failed. Check Apps Script deployment.', 'error', 5000);
+}
+
+// ============================================================
+//  LIVE CLOCK
+// ============================================================
+function updateClock() {
+  const now = new Date();
+  const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const ss = String(now.getSeconds()).padStart(2,'0');
+  const tEl = document.getElementById('live-time');
+  const dEl = document.getElementById('live-date');
+  if (tEl) tEl.textContent = `${hh}:${mm}:${ss}`;
+  if (dEl) dEl.textContent = `${DAYS[now.getDay()]} · ${MONTHS[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ============================================================
+//  THEME — restore on page load before anything renders
+// ============================================================
+(function applyTheme() {
+  const saved = localStorage.getItem('mf_theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    // Toggle will be checked once DOM is ready (see initApp)
+  }
+})();
+
+function toggleTheme(isLight) {
+  document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+  localStorage.setItem('mf_theme', isLight ? 'light' : 'dark');
+}
+
+// ============================================================
+//  APP INIT (runs on DOMContentLoaded)
+// ============================================================
+async function initApp() {
+  showLoading('Connecting to Google Sheets...');
+
+  // Sync theme toggle state
+  const savedTheme = localStorage.getItem('mf_theme');
+  const themeToggle = document.getElementById('theme-toggle');
+  if (themeToggle) themeToggle.checked = (savedTheme === 'light');
+
+  try {
+    // Fetch password — also serves as a connection test
+    const res = await apiGet({ action: 'getPassword' });
+    appState.adminPassword = String(res.password);
+
+    const dot = document.getElementById('login-conn-dot');
+    const msg = document.getElementById('login-conn-msg');
+    if (dot) dot.className = 'conn-dot ok';
+    if (msg) msg.textContent = 'Connected to Google Sheets ✓';
+    document.getElementById('login-btn').disabled = false;
+    setConnBadge('ok');
+
+    // Auto-login if session is still valid
+    if (localStorage.getItem('mf_session') === 'authenticated') {
+      enterApp();
+    }
+  } catch(e) {
+    const dot = document.getElementById('login-conn-dot');
+    const msg = document.getElementById('login-conn-msg');
+    if (dot) dot.className = 'conn-dot fail';
+    if (msg) {
+      msg.innerHTML = `Connection failed: ${escHtml(e.message)}<br>
+        <button class="retry-btn" onclick="initApp()">↻ Retry</button>`;
+    }
+    document.getElementById('login-btn').disabled = false;
+    setConnBadge('fail');
+    document.getElementById('login-error').innerHTML =
+      `⚠ Cannot reach Google Sheets.<br>
+       Ensure your Apps Script is deployed as a Web App with<br>
+       <strong>Execute as: Me</strong> and <strong>Access: Anyone</strong>.`;
+  }
+
+  hideLoading();
+}
+
+// ============================================================
+//  ENTER MAIN APP
+// ============================================================
+function enterApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  const appScreen = document.getElementById('app-screen');
+  appScreen.classList.add('active');
+  buildTabs();
+  buildNewEntryFields();
+  loadAllData();
+}
+
+// ============================================================
+//  LOGIN
+// ============================================================
+async function attemptLogin() {
+  const input = document.getElementById('login-pw-input').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+
+  if (!input) { errEl.textContent = 'Please enter a password.'; return; }
+
+  // If password was not fetched yet (connection failed), try again
+  if (!appState.adminPassword) {
+    errEl.textContent = 'Fetching password...';
+    try {
+      const res = await apiGet({ action: 'getPassword' });
+      appState.adminPassword = String(res.password);
+      errEl.textContent = '';
+    } catch(e) {
+      errEl.textContent = 'Cannot connect to server. Check your internet and retry.';
+      return;
+    }
+  }
+
+  if (input === appState.adminPassword) {
+    localStorage.setItem('mf_session', 'authenticated');
+    enterApp();
+  } else {
+    errEl.textContent = '✕ Incorrect password. Please try again.';
+    document.getElementById('login-pw-input').value = '';
+    document.getElementById('login-pw-input').focus();
+  }
+}
+
+document.getElementById('login-pw-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') attemptLogin();
+});
+
+// ============================================================
+//  LOGOUT
+// ============================================================
+function logout() {
+  localStorage.removeItem('mf_session');
+  appState.sheetData = {};
+  appState.adminPassword = '';
+  appState.editTarget = null;
+  appState.searchQuery = '';
+
+  closeSettings();
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').classList.remove('active');
+  document.getElementById('login-pw-input').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('global-search').value = '';
+
+  toast('Logged out.', 'info');
+  // Re-init to refresh the password from the sheet
+  setTimeout(initApp, 200);
+}
+
+// ============================================================
+//  SETTINGS PANEL
+// ============================================================
+function openSettings() { document.getElementById('settings-panel').classList.add('open'); }
+function closeSettings() { document.getElementById('settings-panel').classList.remove('open'); }
+
+async function changePassword() {
+  const np = document.getElementById('new-password-input').value.trim();
+  const cp = document.getElementById('confirm-password-input').value.trim();
+  if (!np) { toast('Enter a new password.', 'error'); return; }
+  if (np.length < 4) { toast('Password must be at least 4 characters.', 'error'); return; }
+  if (np !== cp) { toast('Passwords do not match.', 'error'); return; }
+
+  try {
+    await apiWrite({ action: 'updatePassword', password: np });
+    appState.adminPassword = np;
+    document.getElementById('new-password-input').value = '';
+    document.getElementById('confirm-password-input').value = '';
+    toast('Password updated successfully!', 'success');
+  } catch(e) {
+    toast('Error updating password: ' + e.message, 'error', 5000);
+  }
+}
+
+// ============================================================
+//  BUILD ACCORDION TABS
+// ============================================================
+function buildTabs() {
+  const container = document.getElementById('tabs-container');
+  container.innerHTML = '';
+  TABS_ORDER.forEach(function(name) {
+    const cfg = SHEET_CONFIG[name];
+    const section = document.createElement('div');
+    section.className = 'tab-section';
+    section.id = `tab-${name}`;
+    section.innerHTML = `
+      <div class="tab-header" onclick="toggleTab('${name}')">
+        <div class="tab-header-left">
+          <div class="tab-icon">${cfg.icon}</div>
+          <span class="tab-name">${escHtml(name)}</span>
+          <span class="tab-count" id="count-${name}">…</span>
+        </div>
+        <span class="tab-chevron">▾</span>
+      </div>
+      <div class="tab-body">
+        <div class="tab-body-inner">
+          <div id="table-${name}">${skeletonLoader(cfg.headers.length + 1)}</div>
+        </div>
+      </div>`;
+    container.appendChild(section);
+  });
+}
+
+function skeletonLoader(cols) {
+  const widths = [40,80,120,100,90,70,110,60,95];
+  let html = '<div class="skel-wrap">';
+  for (let r = 0; r < 4; r++) {
+    html += '<div class="skel-row">';
+    for (let c = 0; c < cols; c++) {
+      html += `<div class="skel-cell" style="width:${widths[c % widths.length]}px"></div>`;
+    }
+    html += '</div>';
+  }
+  return html + '</div>';
+}
+
+function toggleTab(name) {
+  document.getElementById(`tab-${name}`).classList.toggle('active');
+}
+
+// ============================================================
+//  LOAD DATA
+// ============================================================
+async function loadAllData() {
+  await Promise.all(TABS_ORDER.map(function(s) { return loadSheetData(s); }));
+}
+
+async function loadSheetData(name) {
+  try {
+    const res = await apiGet({ action: 'getData', sheet: name });
+    // res.data is an array of arrays: [headerRow, dataRow1, dataRow2, ...]
+    appState.sheetData[name] = res.data || [];
+    renderTable(name, appState.searchQuery);
+  } catch(e) {
+    const tableEl = document.getElementById(`table-${name}`);
+    if (tableEl) {
+      tableEl.innerHTML = `<div class="error-data">
+        ⚠ Failed to load "${escHtml(name)}": ${escHtml(e.message)}<br>
+        <button class="retry-btn" style="margin-top:8px" onclick="loadSheetData('${name}')">↻ Retry</button>
+      </div>`;
+    }
+    const countEl = document.getElementById(`count-${name}`);
+    if (countEl) countEl.textContent = 'Error';
+  }
+}
+
+// ============================================================
+//  RENDER TABLE
+//  rawData[0]         = header row (used for config only)
+//  rawData[1..n]      = actual data rows
+//  Sheet row index    = array index + 1  (1-based)
+//  So rawData[1] corresponds to sheet row 2 (rowIndex=2)
+// ============================================================
+function renderTable(name, filter) {
+  const cfg = SHEET_CONFIG[name];
+  const rawData = appState.sheetData[name] || [];
+
+  // Slice off the header row; data rows start at index 1
+  let dataRows = rawData.length > 1 ? rawData.slice(1) : [];
+
+  // Apply search filter
+  if (filter && filter.trim()) {
+    const q = filter.trim().toLowerCase();
+    dataRows = dataRows.filter(function(row) {
+      return row.some(function(cell) { return String(cell).toLowerCase().includes(q); });
+    });
+  }
+
+  const countEl = document.getElementById(`count-${name}`);
+  if (countEl) countEl.textContent = `${dataRows.length} entr${dataRows.length === 1 ? 'y' : 'ies'}`;
+
+  const container = document.getElementById(`table-${name}`);
+  if (!container) return;
+
+  if (dataRows.length === 0) {
+    container.innerHTML = `<div class="no-data">${filter ? '🔍 No matching entries' : '+ No data yet — add your first entry!'}</div>`;
     return;
   }
 
-  order.forEach((groupName, gi) => {
-    const items = groups[groupName];
-    if (!items || !items.length) return;
-    const meta = groupMeta[groupName] || { icon: "📺", dot: "dot-intl" };
+  const hs = cfg.headers;
+  let html = `<div class="data-table-wrap"><table class="data-table"><thead><tr>
+    ${hs.map(function(h) { return `<th>${escHtml(h)}</th>`; }).join('')}
+    <th>Actions</th>
+  </tr></thead><tbody>`;
 
-    const cat = document.createElement("div");
-    cat.className = "category" + (gi === 0 || filter ? " open" : "");
+  dataRows.forEach(function(row, idx) {
+    // idx=0 → rawData[1] → sheet row index 2
+    // rowIdx is the 1-based sheet row number (passed to GAS for update/delete)
+    const rowIdx = idx + 2;
 
-    cat.innerHTML = `
-      <div class="category-header">
-        <div class="category-label">
-          <span>${meta.icon}</span>
-          ${groupName}
-          <span class="cat-count">${items.length}</span>
-        </div>
-        <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
-      </div>
-      <div class="category-body" id="body-${gi}"></div>
-    `;
-
-    const body = cat.querySelector(".category-body");
-    items.forEach(ch => {
-      const item = document.createElement("div");
-      item.className = "channel-item";
-      item.dataset.url = ch.url;
-
-      const logoSrc = ch.logo && ch.logo.trim() ? ch.logo.trim() : fallbackLogo;
-      const fmt = isDASH(ch.url) ? "DASH" : "HLS";
-      const fmtClass = isDASH(ch.url) ? "dash" : "hls";
-
-      item.innerHTML = `
-        <img class="ch-logo" src="${logoSrc}" onerror="this.src='${fallbackLogo}'" alt="">
-        <div class="ch-info">
-          <div class="ch-name">${ch.name}</div>
-          <div class="ch-group">${groupName}</div>
-        </div>
-        <span class="ch-format ${fmtClass}">${fmt}</span>
-        <div class="live-dot"></div>
-      `;
-
-      item.addEventListener("click", () => play(ch, item));
-      body.appendChild(item);
+    html += `<tr>`;
+    hs.forEach(function(h, ci) {
+      const raw  = (row[ci] !== undefined && row[ci] !== null) ? row[ci] : '';
+      const cell = escHtml(String(raw));
+      if (h === 'pw') {
+        html += `<td class="pw-cell"><span class="pw-mask" onclick="this.classList.toggle('revealed')" title="Click to reveal">${cell || '—'}</span></td>`;
+      } else {
+        html += `<td title="${cell}">${cell || '—'}</td>`;
+      }
     });
-
-    cat.querySelector(".category-header").addEventListener("click", () => {
-      cat.classList.toggle("open");
-    });
-
-    channelList.appendChild(cat);
+    html += `<td><div class="td-actions">
+      <button class="btn-icon" title="Edit entry" onclick="openEdit('${name}',${rowIdx})">✎</button>
+      <button class="btn-icon danger" title="Delete entry" onclick="confirmDelete('${name}',${rowIdx})">🗑</button>
+    </div></td></tr>`;
   });
+
+  html += `</tbody></table></div>`;
+  container.innerHTML = html;
 }
 
-// ── Fullscreen & sidebar ──────────────────────────────────────────────────────
-function toggleFS() {
-  const vw = document.getElementById("videoWrap");
-  if (!document.fullscreenElement) vw.requestFullscreen().catch(() => {});
-  else document.exitFullscreen();
+// ============================================================
+//  GLOBAL SEARCH
+// ============================================================
+function filterAll(query) {
+  appState.searchQuery = query;
+  TABS_ORDER.forEach(function(s) { renderTable(s, query); });
 }
 
-function toggleSidebar() {
-  document.getElementById("sidebar").classList.toggle("open");
+// ============================================================
+//  NEW ENTRY FORM (animated dropdown)
+// ============================================================
+let newEntryOpen = false;
+
+function toggleNewEntry() {
+  newEntryOpen = !newEntryOpen;
+  document.getElementById('new-entry-form').classList.toggle('open', newEntryOpen);
+  if (newEntryOpen) buildNewEntryFields();
 }
 
-// ── Clock ─────────────────────────────────────────────────────────────────────
-function updateTime() {
-  document.getElementById("infoTime").textContent =
-    new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+function buildNewEntryFields() {
+  const name = document.getElementById('new-entry-sheet').value;
+  const cfg = SHEET_CONFIG[name];
+  const container = document.getElementById('new-entry-fields');
+  container.innerHTML = cfg.headers.map(function(h) {
+    return makeFieldHTML(`nf_${safeId(h)}`, h);
+  }).join('');
 }
-setInterval(updateTime, 1000);
-updateTime();
 
-// ── Search ────────────────────────────────────────────────────────────────────
-document.getElementById("search").addEventListener("input", e => render(e.target.value));
+function makeFieldHTML(id, header) {
+  const isWide = (header === 'Remarks' || header === 'Subject/details');
+  const spanStyle = isWide ? ' style="grid-column:span 2"' : '';
+  let inputHtml;
+  if (header === 'pw') {
+    inputHtml = `<input type="password" id="${id}" class="form-input" placeholder="Password..."/>`;
+  } else if (header === 'Date') {
+    inputHtml = `<input type="date" id="${id}" class="form-input"/>`;
+  } else if (header === 'Time') {
+    inputHtml = `<input type="time" id="${id}" class="form-input"/>`;
+  } else {
+    inputHtml = `<input type="text" id="${id}" class="form-input" placeholder="${escAttr(header)}..."/>`;
+  }
+  return `<div class="form-group"${spanStyle}><label class="form-label">${escHtml(header)}</label>${inputHtml}</div>`;
+}
 
-// ── Boot ──────────────────────────────────────────────────────────────────────
-render();
+async function submitNewEntry() {
+  const name = document.getElementById('new-entry-sheet').value;
+  const cfg  = SHEET_CONFIG[name];
+  const btn  = document.getElementById('add-entry-btn');
+
+  const row = cfg.headers.map(function(h) {
+    const el = document.getElementById(`nf_${safeId(h)}`);
+    return el ? el.value.trim() : '';
+  });
+
+  if (row.every(function(v) { return !v; })) {
+    toast('Please fill in at least one field.', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Adding...';
+
+  try {
+    // row is JSON-stringified and sent as a URL GET parameter
+    await apiWrite({ action: 'addRow', sheet: name, row: JSON.stringify(row) });
+    toast(`Entry added to ${name}!`, 'success');
+
+    // Clear form fields
+    cfg.headers.forEach(function(h) {
+      const el = document.getElementById(`nf_${safeId(h)}`);
+      if (el) el.value = '';
+    });
+
+    // Close form and refresh the target tab
+    toggleNewEntry();
+    await loadSheetData(name);
+
+    // Auto-expand the target tab so the user sees the new entry
+    const section = document.getElementById(`tab-${name}`);
+    if (section && !section.classList.contains('active')) toggleTab(name);
+
+  } catch(e) {
+    toast('Error adding entry: ' + e.message, 'error', 5000);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✓ Add Entry';
+}
+
+// ============================================================
+//  EDIT MODAL
+//  rowIdx: 1-based sheet row number (row 1 = headers, row 2 = first data row)
+//  In rawData: rawData[0]=headers, rawData[1]=first data row
+//  → rawData[rowIdx - 1] maps rowIdx=2 → rawData[1] ✓
+// ============================================================
+function openEdit(name, rowIdx) {
+  const cfg     = SHEET_CONFIG[name];
+  const rawData = appState.sheetData[name];
+
+  // rawData[rowIdx - 1]: rowIdx is 1-based sheet row; subtract 1 for 0-based array
+  // rawData[0] = header row → rawData[rowIdx - 1] with rowIdx≥2 gives a data row ✓
+  const row = rawData && rawData[rowIdx - 1];
+  if (!row) {
+    toast('Could not find row data. Please refresh and try again.', 'error');
+    return;
+  }
+
+  appState.editTarget = { name, rowIdx };
+  document.getElementById('edit-modal-title').textContent = `Edit · ${name}`;
+
+  const grid = document.getElementById('edit-form-grid');
+  grid.innerHTML = cfg.headers.map(function(h, i) {
+    const raw   = (row[i] !== undefined && row[i] !== null) ? row[i] : '';
+    const id    = `ef_${safeId(h)}`;
+    const isWide = (h === 'Remarks' || h === 'Subject/details');
+    const spanStyle = isWide ? ' style="grid-column:span 2"' : '';
+    let inputHtml;
+    if (h === 'pw') {
+      inputHtml = `<input type="text" id="${id}" class="form-input" value="${escAttr(String(raw))}"/>`;
+    } else if (h === 'Date') {
+      inputHtml = `<input type="date" id="${id}" class="form-input" value="${escAttr(String(raw))}"/>`;
+    } else if (h === 'Time') {
+      inputHtml = `<input type="time" id="${id}" class="form-input" value="${escAttr(String(raw))}"/>`;
+    } else {
+      inputHtml = `<input type="text" id="${id}" class="form-input" value="${escAttr(String(raw))}"/>`;
+    }
+    return `<div class="form-group"${spanStyle}><label class="form-label">${escHtml(h)}</label>${inputHtml}</div>`;
+  }).join('');
+
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal').classList.remove('open');
+  appState.editTarget = null;
+}
+
+async function submitEdit() {
+  if (!appState.editTarget) return;
+  const { name, rowIdx } = appState.editTarget;
+  const cfg = SHEET_CONFIG[name];
+  const btn = document.getElementById('save-edit-btn');
+
+  const row = cfg.headers.map(function(h) {
+    const el = document.getElementById(`ef_${safeId(h)}`);
+    return el ? el.value.trim() : '';
+  });
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  try {
+    await apiWrite({ action: 'updateRow', sheet: name, rowIndex: rowIdx, row: JSON.stringify(row) });
+    toast('Entry updated!', 'success');
+    closeEditModal();
+    await loadSheetData(name);
+  } catch(e) {
+    toast('Error updating entry: ' + e.message, 'error', 5000);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '✓ Save Changes';
+}
+
+// ============================================================
+//  DELETE WITH CONFIRMATION
+// ============================================================
+function confirmDelete(name, rowIdx) {
+  document.getElementById('confirm-message').textContent =
+    `Delete this entry from "${name}"? This cannot be undone.`;
+
+  // Clone button to remove previous event listeners
+  const oldBtn = document.getElementById('confirm-ok-btn');
+  const newBtn = oldBtn.cloneNode(true);
+  oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+
+  newBtn.addEventListener('click', async function() {
+    closeConfirm();
+    try {
+      await apiWrite({ action: 'deleteRow', sheet: name, rowIndex: rowIdx });
+      toast('Entry deleted.', 'success');
+      await loadSheetData(name);
+    } catch(e) {
+      toast('Error deleting entry: ' + e.message, 'error', 5000);
+    }
+  });
+
+  document.getElementById('confirm-dialog').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-dialog').classList.remove('open');
+}
+
+// ============================================================
+//  REFRESH ALL DATA
+// ============================================================
+async function refreshAll() {
+  toast('Refreshing data...', 'info');
+  // Also refresh cached password
+  try {
+    const res = await apiGet({ action: 'getPassword' });
+    appState.adminPassword = String(res.password);
+  } catch(e) { /* non-critical */ }
+  await loadAllData();
+  toast('Data refreshed!', 'success');
+}
+
+// ============================================================
+//  CLOSE MODALS ON OVERLAY CLICK
+// ============================================================
+document.getElementById('confirm-dialog').addEventListener('click', function(e) {
+  if (e.target === this) closeConfirm();
+});
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeEditModal();
+});
+
+// ============================================================
+//  BOOT — run after DOM is fully loaded
+// ============================================================
+window.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
 </html>
