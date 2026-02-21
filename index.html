@@ -131,9 +131,9 @@ select.form-input{cursor:pointer}
 .new-entry-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .section-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text-muted)}
 .form-dropdown{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;max-height:0;transition:max-height .45s cubic-bezier(.4,0,.2,1),opacity .3s;opacity:0;margin-bottom:16px}
-.form-dropdown.open{max-height:800px;opacity:1}
+.form-dropdown.open{max-height:2000px;opacity:1}
 .form-dropdown-inner{padding:24px}
-.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:16px}
 .form-footer{display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid var(--border)}
 
 /* ── ACCORDION TABS ── */
@@ -205,6 +205,23 @@ select.form-input{cursor:pointer}
 /* ── CONFIRM DIALOG ── */
 .confirm-message{color:var(--text-dim);font-size:13px;line-height:1.7}
 
+/* ── INFO POPUP ── */
+.info-modal{max-width:600px}
+.info-modal .modal-header{border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:0}
+.info-modal-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.2);padding:4px 12px;border-radius:20px}
+.info-fields{display:flex;flex-direction:column;gap:0}
+.info-field{display:flex;flex-direction:column;gap:4px;padding:12px 0;border-bottom:1px solid var(--border)}
+.info-field:last-child{border-bottom:none}
+.info-field-label{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-muted)}
+.info-field-value{font-size:13px;color:var(--text);line-height:1.65;word-break:break-word;white-space:pre-wrap}
+.info-field-value.pw-val{font-family:var(--font-m);letter-spacing:2px;filter:blur(5px);cursor:pointer;transition:filter .2s;user-select:none}
+.info-field-value.pw-val:hover,.info-field-value.pw-val.revealed{filter:none}
+.info-field-value.long-val{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;max-height:200px;overflow-y:auto}
+.info-field-value.empty-val{color:var(--text-muted);font-style:italic;font-size:12px}
+/* Row is clickable */
+.data-table tbody tr{cursor:pointer}
+.data-table tbody tr td.td-act-cell{cursor:default}
+
 /* ── RESPONSIVE ── */
 @media(max-width:600px){
   .app-header{padding:0 16px;height:56px}
@@ -263,6 +280,25 @@ select.form-input{cursor:pointer}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
       <button class="btn btn-success" id="save-edit-btn" onclick="submitEdit()">✓ Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── INFO POPUP MODAL ── -->
+<div class="modal-overlay" id="info-modal">
+  <div class="modal info-modal">
+    <div class="modal-header">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <span class="modal-title" id="info-modal-title">Entry Details</span>
+        <span class="info-modal-badge" id="info-modal-badge"></span>
+      </div>
+      <button class="modal-close" onclick="closeInfoModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-fields" id="info-fields"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeInfoModal()">Close</button>
     </div>
   </div>
 </div>
@@ -329,6 +365,7 @@ select.form-input{cursor:pointer}
             <option value="UrPWs">UrPWs</option>
             <option value="PersonalEvts">PersonalEvts</option>
             <option value="StnEvnts">StnEvnts</option>
+            <option value="ClientInfo">ClientInfo</option>
           </select>
         </div>
         <div class="form-grid" id="new-entry-fields"></div>
@@ -411,9 +448,10 @@ const SHEET_CONFIG = {
   PNPpw:        { icon:'🛡️', type:'password', headers:['Nr','Types','Sites','Owners','Users','pw','Remarks'] },
   UrPWs:        { icon:'🔑', type:'password', headers:['Nr','Types','Sites','Owners','Users','pw','Remarks'] },
   PersonalEvts: { icon:'📅', type:'event',    headers:['No.','Date','Time','Subject/details','Remarks'] },
-  StnEvnts:     { icon:'📌', type:'event',    headers:['No.','Date','Time','Subject/details','Remarks'] }
+  StnEvnts:     { icon:'📌', type:'event',    headers:['No.','Date','Time','Subject/details','Remarks'] },
+  ClientInfo:   { icon:'👤', type:'event',    headers:['No.','Date','Time','Name','Birthdate','Gender','Civil Status','Address','Contact Nr','Remarks'] }
 };
-const TABS_ORDER = ['MyPWs','PNPpw','UrPWs','PersonalEvts','StnEvnts'];
+const TABS_ORDER = ['MyPWs','PNPpw','UrPWs','PersonalEvts','StnEvnts','ClientInfo'];
 
 // ============================================================
 //  APPLICATION STATE
@@ -433,7 +471,26 @@ const appState = {
 function safeId(header) {
   return header.replace(/[^a-zA-Z0-9]/g, '_');
 }
+// ============================================================
+//  DATE FORMATTER — converts any stored date to "2026 Feb 21"
+// ============================================================
+function formatDate(val) {
+  if (!val || !String(val).trim()) return val;
+  var s = String(val).trim();
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+  // yyyy-MM-dd from <input type="date"> or Google Sheets e.g. "2026-02-21"
+  var match = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    var yr  = match[1];
+    var mon = MONTHS[parseInt(match[2], 10) - 1];
+    var day = parseInt(match[3], 10);
+    return yr + ' ' + mon + ' ' + day;
+  }
+
+  // Already formatted or unrecognized — return as-is
+  return s;
+}
 // ============================================================
 //  HTML ESCAPE HELPERS
 // ============================================================
@@ -824,15 +881,20 @@ function renderTable(name, filter) {
   const rawData = appState.sheetData[name] || [];
 
   // Slice off the header row; data rows start at index 1
-  let dataRows = rawData.length > 1 ? rawData.slice(1) : [];
+  // Attach original index BEFORE filtering so rowIdx always points to the real sheet row
+  let allRows = rawData.length > 1 ? rawData.slice(1).map(function(row, i) {
+    return { row: row, origIdx: i };
+  }) : [];
 
-  // Apply search filter
+  // Apply search filter (filter on row content, but keep origIdx intact)
   if (filter && filter.trim()) {
     const q = filter.trim().toLowerCase();
-    dataRows = dataRows.filter(function(row) {
-      return row.some(function(cell) { return String(cell).toLowerCase().includes(q); });
+    allRows = allRows.filter(function(item) {
+      return item.row.some(function(cell) { return String(cell).toLowerCase().includes(q); });
     });
   }
+
+  const dataRows = allRows; // each item: { row, origIdx }
 
   const countEl = document.getElementById(`count-${name}`);
   if (countEl) countEl.textContent = `${dataRows.length} entr${dataRows.length === 1 ? 'y' : 'ies'}`;
@@ -851,22 +913,25 @@ function renderTable(name, filter) {
     <th>Actions</th>
   </tr></thead><tbody>`;
 
-  dataRows.forEach(function(row, idx) {
-    // idx=0 → rawData[1] → sheet row index 2
-    // rowIdx is the 1-based sheet row number (passed to GAS for update/delete)
-    const rowIdx = idx + 2;
+  dataRows.forEach(function(item) {
+    const row = item.row;
+    // origIdx is 0-based index in rawData.slice(1), so sheet row = origIdx + 2
+    const rowIdx = item.origIdx + 2;
 
-    html += `<tr>`;
+    html += `<tr onclick="openInfoPopup('${name}',${rowIdx})">`;
     hs.forEach(function(h, ci) {
       const raw  = (row[ci] !== undefined && row[ci] !== null) ? row[ci] : '';
       const cell = escHtml(String(raw));
       if (h === 'pw') {
         html += `<td class="pw-cell"><span class="pw-mask" onclick="this.classList.toggle('revealed')" title="Click to reveal">${cell || '—'}</span></td>`;
+      } else if (h === 'Date' || h === 'Birthdate') {
+        var dateFmt = escHtml(formatDate(String(raw)));
+        html += `<td title="${dateFmt}">${dateFmt || '—'}</td>`;
       } else {
         html += `<td title="${cell}">${cell || '—'}</td>`;
       }
     });
-    html += `<td><div class="td-actions">
+    html += `<td class="td-act-cell" onclick="event.stopPropagation()"><div class="td-actions">
       <button class="btn-icon" title="Edit entry" onclick="openEdit('${name}',${rowIdx})">✎</button>
       <button class="btn-icon danger" title="Delete entry" onclick="confirmDelete('${name}',${rowIdx})">🗑</button>
     </div></td></tr>`;
@@ -895,18 +960,36 @@ function toggleNewEntry() {
   if (newEntryOpen) buildNewEntryFields();
 }
 
-function buildNewEntryFields() {
+async function buildNewEntryFields() {
   const name = document.getElementById('new-entry-sheet').value;
   const cfg = SHEET_CONFIG[name];
   const container = document.getElementById('new-entry-fields');
   container.innerHTML = cfg.headers.map(function(h) {
     return makeFieldHTML(`nf_${safeId(h)}`, h);
   }).join('');
+
+  // ── AUTO-FILL entry number ──────────────────────────────
+  // If data for this sheet isn't loaded yet, fetch it first
+  if (!appState.sheetData[name] || appState.sheetData[name].length === 0) {
+    await loadSheetData(name);
+  }
+
+  const rawData = appState.sheetData[name] || [];
+  // rawData[0] = header row, so data rows = rawData.length - 1
+  const nextNum = rawData.length > 1 ? rawData.length : 1;
+
+  const numField = document.getElementById('nf_Nr') || document.getElementById('nf_No_');
+  if (numField) {
+    numField.value = nextNum;
+    numField.readOnly = true;
+    numField.style.opacity = '0.5';
+    numField.style.cursor  = 'not-allowed';
+  }
 }
 
 function makeFieldHTML(id, header) {
   const isWide = (header === 'Remarks' || header === 'Subject/details');
-  const spanStyle = isWide ? ' style="grid-column:span 2"' : '';
+  const spanStyle = '';
   let inputHtml;
   if (header === 'pw') {
     inputHtml = `<input type="password" id="${id}" class="form-input" placeholder="Password..."/>`;
@@ -914,6 +997,27 @@ function makeFieldHTML(id, header) {
     inputHtml = `<input type="date" id="${id}" class="form-input"/>`;
   } else if (header === 'Time') {
     inputHtml = `<input type="time" id="${id}" class="form-input"/>`;
+    } else if (header === 'Birthdate') {
+    inputHtml = `<input type="Date" id="${id}" class="form-input"/>`;
+   } else if (header === 'Civil Status') {
+    inputHtml = `
+        <select id="${id}" class="form-input">
+            <option value=""></option>
+            <option value="Single">Single</option>
+            <option value="Married">Married</option>
+            <option value="Separated">Separated</option>
+            <option value="Widow/er">Widow/er</option>
+        </select>`;
+   } else if (header === 'Gender') {
+    inputHtml = `
+        <select id="${id}" class="form-input">
+            <option value=""></option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Gay">Gay</option>
+            <option value="Lesbian">Lesbian</option>
+            <option value="Bisexual">Bisexual</option>
+        </select>`;
   } else {
     inputHtml = `<input type="text" id="${id}" class="form-input" placeholder="${escAttr(header)}..."/>`;
   }
@@ -991,7 +1095,7 @@ function openEdit(name, rowIdx) {
     const raw   = (row[i] !== undefined && row[i] !== null) ? row[i] : '';
     const id    = `ef_${safeId(h)}`;
     const isWide = (h === 'Remarks' || h === 'Subject/details');
-    const spanStyle = isWide ? ' style="grid-column:span 2"' : '';
+    const spanStyle = '';
     let inputHtml;
     if (h === 'pw') {
       inputHtml = `<input type="text" id="${id}" class="form-input" value="${escAttr(String(raw))}"/>`;
@@ -1085,8 +1189,63 @@ async function refreshAll() {
 }
 
 // ============================================================
+//  INFO POPUP — tap any row to view full details
+// ============================================================
+let infoTarget = null;
+
+function openInfoPopup(name, rowIdx) {
+  const cfg     = SHEET_CONFIG[name];
+  const rawData = appState.sheetData[name];
+  const row     = rawData && rawData[rowIdx - 1];
+  if (!row) { toast('Could not load entry data.', 'error'); return; }
+
+  infoTarget = { name, rowIdx };
+
+  // Header
+  document.getElementById('info-modal-title').textContent = `Entry · Row ${rowIdx - 1}`;
+  document.getElementById('info-modal-badge').innerHTML = `${cfg.icon} ${escHtml(name)}`;
+
+  // Build fields
+  const fieldsEl = document.getElementById('info-fields');
+  fieldsEl.innerHTML = cfg.headers.map(function(h, i) {
+    const raw  = (row[i] !== undefined && row[i] !== null) ? String(row[i]) : '';
+    const isEmpty = !raw.trim();
+    const isLong  = (h === 'Remarks' || h === 'Subject/details');
+    const isPw    = (h === 'pw');
+
+    let valHtml;
+    if (isEmpty) {
+      valHtml = `<span class="info-field-value empty-val">— empty —</span>`;
+    } else if (isPw) {
+      valHtml = `<span class="info-field-value pw-val" title="Tap to reveal" onclick="this.classList.toggle('revealed')">${escHtml(raw)}</span>`;
+    } else if (isLong) {
+      valHtml = `<div class="info-field-value long-val">${escHtml(raw)}</div>`;
+    } else if (h === 'Date' || h === 'Birthdate') {
+      valHtml = `<span class="info-field-value">${escHtml(formatDate(raw))}</span>`;
+    } else {
+      valHtml = `<span class="info-field-value">${escHtml(raw)}</span>`;
+    }
+
+    return `<div class="info-field">
+      <span class="info-field-label">${escHtml(h)}</span>
+      ${valHtml}
+    </div>`;
+  }).join('');
+
+  document.getElementById('info-modal').classList.add('open');
+}
+
+function closeInfoModal() {
+  document.getElementById('info-modal').classList.remove('open');
+  infoTarget = null;
+}
+
+// ============================================================
 //  CLOSE MODALS ON OVERLAY CLICK
 // ============================================================
+document.getElementById('info-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeInfoModal();
+});
 document.getElementById('confirm-dialog').addEventListener('click', function(e) {
   if (e.target === this) closeConfirm();
 });
