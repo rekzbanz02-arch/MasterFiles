@@ -886,6 +886,21 @@ function renderTable(name, filter) {
     return { row: row, origIdx: i };
   }) : [];
 
+  // ── SORT by Date column (newest → oldest) if this sheet has one ──
+  var dateColIdx = cfg.headers.indexOf('Date');
+  if (dateColIdx !== -1) {
+    allRows.sort(function(a, b) {
+      var rawA = a.row[dateColIdx] ? String(a.row[dateColIdx]).trim() : '';
+      var rawB = b.row[dateColIdx] ? String(b.row[dateColIdx]).trim() : '';
+      var da = rawA ? new Date(rawA) : new Date(0);
+      var db = rawB ? new Date(rawB) : new Date(0);
+      // Invalid dates fall to the bottom
+      if (isNaN(da.getTime())) da = new Date(0);
+      if (isNaN(db.getTime())) db = new Date(0);
+      return db - da; // descending: newest first
+    });
+  }
+
   // Apply search filter (filter on row content, but keep origIdx intact)
   if (filter && filter.trim()) {
     const q = filter.trim().toLowerCase();
