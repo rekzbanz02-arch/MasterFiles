@@ -491,6 +491,44 @@ function formatDate(val) {
   // Already formatted or unrecognized — return as-is
   return s;
 }
+
+// ============================================================
+//  TIME FORMATTER — converts "13:00" → "1:00 PM"
+// ============================================================
+function formatTime(val) {
+  if (!val || !String(val).trim()) return val;
+
+  const s = String(val).trim();
+
+  // ❗ CASE 1: Google Sheets time stored as date (e.g. 1899-12-30T13:00:00)
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) {
+    let hours = d.getHours();
+    let minutes = String(d.getMinutes()).padStart(2, '0');
+
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+
+    return `${hours}:${minutes} ${ampm}`;
+  }
+
+  // ❗ CASE 2: Normal "HH:mm"
+  const match = s.match(/^(\d{2}):(\d{2})/);
+  if (match) {
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+
+    return `${hours}:${minutes} ${ampm}`;
+  }
+
+  return s;
+}
+  
 // ============================================================
 //  HTML ESCAPE HELPERS
 // ============================================================
@@ -942,9 +980,12 @@ function renderTable(name, filter) {
       } else if (h === 'Date' || h === 'Birthdate') {
         var dateFmt = escHtml(formatDate(String(raw)));
         html += `<td title="${dateFmt}">${dateFmt || '—'}</td>`;
-      } else {
-        html += `<td title="${cell}">${cell || '—'}</td>`;
-      }
+      } else if (h === 'Time') {
+  var timeFmt = escHtml(formatTime(String(raw)));
+  html += `<td title="${timeFmt}">${timeFmt || '—'}</td>`;
+} else {
+  html += `<td title="${cell}">${cell || '—'}</td>`;
+}
     });
     html += `<td class="td-act-cell" onclick="event.stopPropagation()"><div class="td-actions">
       <button class="btn-icon" title="Edit entry" onclick="openEdit('${name}',${rowIdx})">✎</button>
@@ -1237,9 +1278,11 @@ function openInfoPopup(name, rowIdx) {
       valHtml = `<div class="info-field-value long-val">${escHtml(raw)}</div>`;
     } else if (h === 'Date' || h === 'Birthdate') {
       valHtml = `<span class="info-field-value">${escHtml(formatDate(raw))}</span>`;
-    } else {
-      valHtml = `<span class="info-field-value">${escHtml(raw)}</span>`;
-    }
+    } else if (h === 'Time') {
+  valHtml = `<span class="info-field-value">${escHtml(formatTime(raw))}</span>`;
+} else {
+  valHtml = `<span class="info-field-value">${escHtml(raw)}</span>`;
+}
 
     return `<div class="info-field">
       <span class="info-field-label">${escHtml(h)}</span>
